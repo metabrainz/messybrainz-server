@@ -188,6 +188,6 @@ def _prep_list(l, namespace=None):
 
 def _prep_dict(dictionary, namespace=None):
     """Wrapper for _prep_key function that works with dictionaries."""
-    for key in dictionary.keys():
+    for key in list(dictionary.keys()):
         dictionary[_prep_key(key, namespace)] = dictionary.pop(key)
     return dictionary

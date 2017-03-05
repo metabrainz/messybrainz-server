@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 from messybrainz import db
 from webserver import create_app
 import subprocess
