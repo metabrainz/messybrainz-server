@@ -6,8 +6,8 @@ else
     echo "Application directory is not specified. Using current directory!"
 fi
 echo "source venv-messybrainz/bin/activate" > ~/.bashrc
-virtualenv ../venv-messybrainz
+pyvenv-3.4 ../venv-messybrainz
 source ../venv-messybrainz/bin/activate
-pip install -r requirements.txt
-python manage.py init_db
-python manage.py init_test_db
+pip3 install -r requirements.txt
+python3 manage.py init_db --force
+python3 manage.py init_test_db --force
