@@ -1,0 +1,25 @@
+sudo: required
+
+language: python
+
+services:
+  - docker
+
+install:
+  # Build the unit test docker-compose project
+  - docker-compose -f docker/docker-compose.test.yml -p messybrainz_test build
+  - docker-compose -f docker/docker-compose.test.yml -p messybrainz_test run --rm messybrainz
+      dockerize
+      -wait tcp://db:5432 -timeout 60s bash -c
+      "python3 manage.py init_db"
+  - docker-compose -f docker/docker-compose.test.yml -p listenbrainz_test stop
+
+script:
+  # First run unit tests and bring containers down then
+  - docker-compose -f docker/docker-compose.test.yml -p messybrainz_test up -d db redis
+  - docker-compose -f docker/docker-compose.test.yml -p messybrainz_test run --rm messybrainz
+                dockerize
+                -wait tcp://db:5432 -timeout 60s
+                -wait tcp://redis:6379 -timeout 60s
+                py.test
+  - docker-compose -f docker/docker-compose.test.yml -p messybrainz_test down
