@@ -42,8 +42,12 @@ cli = click.Group()
 @cli.command()
 @click.option('--location', '-l', default=os.path.join(os.getcwd(), 'messybrainz-export'))
 @click.option('--threads', '-t', type=int)
-def create(location, threads):
-    """ TODO
+def create(location, threads=None):
+    """ Create a MessyBrainz data dump
+
+        Args:
+            location (str): path to the directory where the dump should be made
+            threads (int): the number of threads to be used while compression, 1 if not specified
     """
     db.init_db_engine(config.SQLALCHEMY_DATABASE_URI)
     logger.info('Beginning data dump...')
