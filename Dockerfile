@@ -9,6 +9,7 @@ RUN apt-get update \
                        build-essential \
                        redis-tools \
                        libpq-dev \
+                       pxz \
                        git \
     && rm -rf /var/lib/apt/lists/*
 

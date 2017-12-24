@@ -96,5 +96,8 @@ def init_test_db(force=False):
     print("Done!")
 
 
+import messybrainz.db.dump_manager as dump_manager
+cli.add_command(dump_manager.cli, name='dump')
+
 if __name__ == '__main__':
     cli()
