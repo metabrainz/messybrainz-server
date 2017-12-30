@@ -10,6 +10,7 @@ RUN apt-get update \
                        redis-tools \
                        libpq-dev \
                        git \
+                       pxz \
     && rm -rf /var/lib/apt/lists/*
 
 # PostgreSQL client

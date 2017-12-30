@@ -20,7 +20,9 @@
 
 import messybrainz.db as db
 import messybrainz.db.dump as db_dump
+import os
 import tempfile
+import shutil
 
 from messybrainz.testing import DatabaseTestCase
 
