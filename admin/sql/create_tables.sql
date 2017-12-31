@@ -64,4 +64,9 @@ CREATE TABLE release_cluster (
   updated     TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
+CREATE TABLE data_dump (
+  id          SERIAL,
+  created     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
 COMMIT;

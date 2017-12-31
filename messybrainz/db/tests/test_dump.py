@@ -24,6 +24,7 @@ import os
 import tempfile
 import shutil
 
+from datetime import datetime
 from messybrainz.testing import DatabaseTestCase
 
 
@@ -44,3 +45,8 @@ class DumpTestCase(DatabaseTestCase):
         self.assertTrue(os.path.isfile(archive))
 
 
+    def test_add_dump_entry(self):
+        prev_dumps = db_dump.get_dump_entries()
+        db_dump.add_dump_entry(datetime.today().strftime('%s'))
+        now_dumps = db_dump.get_dump_entries()
+        self.assertEqual(len(now_dumps), len(prev_dumps) + 1)

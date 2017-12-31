@@ -22,6 +22,7 @@
 import logging
 import os
 import shutil
+import sqlalchemy
 import subprocess
 import sys
 import tarfile
@@ -136,3 +137,38 @@ def dump_db(location, threads=None):
         pxz.stdin.close()
 
     return archive_path
+
+
+def add_dump_entry(timestamp):
+    """ Adds an entry to the data_dump table with specified time.
+
+        Args:
+            timestamp: the unix timestamp to be added
+
+        Returns:
+            id (int): the id of the new entry added
+    """
+
+    with db.engine.connect() as connection:
+        result = connection.execute(sqlalchemy.text("""
+                INSERT INTO data_dump (created)
+                     VALUES (TO_TIMESTAMP(:ts))
+                  RETURNING id
+            """), {
+                'ts': timestamp,
+            })
+        return result.fetchone()['id']
+
+
+def get_dump_entries():
+    """ Returns a list of all dump entries in the data_dump table
+    """
+
+    with db.engine.connect() as connection:
+        result = connection.execute(sqlalchemy.text("""
+                SELECT id, created
+                  FROM data_dump
+              ORDER BY created DESC
+            """))
+
+        return [dict(row) for row in result]
