@@ -60,18 +60,18 @@ TABLES = (
 )
 
 
-def dump_db(location, threads=None):
+def dump_db(location, threads=None, dump_time=datetime.today()):
     """ Create MessyBrainz database dump in the specified location
 
         Arguments:
             location: Directory where the final dump will be stored
             threads: Maximal number of threads to run during compression, 1 if not specified
+            dump_time (datetime obj): the time when the dump was initiated
 
         Returns:
             Path to created dump.
     """
     create_path(location)
-    dump_time = datetime.today()
     archive_name = 'messybrainz-data-dump-{time}'.format(
         time=dump_time.strftime('%Y%m%d-%H%M%S')
     )

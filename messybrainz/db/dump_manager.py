@@ -24,7 +24,9 @@ import click
 import logging
 import messybrainz.db.dump as db_dump
 import os
+import time
 
+from datetime import datetime
 from messybrainz import db
 
 import messybrainz.default_config as config
@@ -51,11 +53,21 @@ def create(location, threads=None):
     """
     db.init_db_engine(config.SQLALCHEMY_DATABASE_URI)
     logger.info('Beginning data dump...')
+    dump_time = datetime.today()
     try:
-        dump_path = db_dump.dump_db(location, threads)
+        dump_path = db_dump.dump_db(location, threads, dump_time)
     except IOError as e:
         logger.error('IOError while dumping MessyBrainz database: %s', str(e))
         raise
+
+    while True:
+        try:
+            db_dump.add_dump_entry(dump_time.strftime('%s'))
+            break
+        except Exception as e:
+            logger.error('Error while adding new dump entry: %s', str(e))
+            time.sleep(3)
+
     logger.info('Data dump created at %s!', dump_path)
 
 
