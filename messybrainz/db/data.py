@@ -19,7 +19,7 @@ def get_id_from_meta_hash(connection, data):
     """
 
     meta = {"artist": data["artist"], "title": data["title"]}
-    meta_json = json.dumps(meta, sort_keys=True, separators=(',', ':'))
+    meta_json = _convert_to_messybrainz_json(meta)
     meta_sha256 = sha256(meta_json.encode("utf-8")).hexdigest()
 
     query = text("""SELECT s.gid
@@ -119,7 +119,7 @@ def get_id_from_recording(connection, data):
     Returns:
         the MessyBrainz ID of the recording with passed data if it exists, None otherwise
     """
-    data_json = json.dumps(data, sort_keys=True, separators=(',', ':'))
+    data_json = _convert_to_messybrainz_json(data)
     data_sha256 = sha256(data_json.encode("utf-8")).hexdigest()
 
     query = text("""SELECT s.gid
@@ -144,11 +144,11 @@ def submit_recording(connection, data):
     Returns:
         the Recording MessyBrainz ID of the data
     """
-    data_json = json.dumps(data, sort_keys=True, separators=(',', ':'))
+    data_json = _convert_to_messybrainz_json(data)
     data_sha256 = sha256(data_json.encode("utf-8")).hexdigest()
 
     meta = {"artist": data["artist"], "title": data["title"]}
-    meta_json = json.dumps(meta, sort_keys=True, separators=(',', ':'))
+    meta_json = _convert_to_messybrainz_json(meta)
     meta_sha256 = sha256(meta_json.encode("utf-8")).hexdigest()
 
     artist = get_artist_credit(connection, data["artist"])
@@ -240,3 +240,32 @@ def link_recording_to_recording_id(connection, msid, mbid):
         "cluster_id": msid,
         "mbid": mbid,
     })
+
+
+def _convert_to_messybrainz_json(data):
+    """ Converts the specified data dict into JSON strings, while
+    applying MessyBrainz' transformations which include
+        * sorting by keys
+        * lowercasing all values
+
+    Args:
+        data (dict): the dict to be converted into MessyBrainz JSON
+
+    Returns:
+        str: the MessyBrainz JSON after transformations
+    """
+
+    def lower(d):
+        """ Lower cases all values in the specified dict.
+        """
+        result = {}
+        for key, value in d.items():
+            if isinstance(value, str):
+                result[key] = value.lower()
+            elif isinstace(value, dict):
+                result[key] = lower(value)
+            else:
+                result[key] = value
+        return result
+
+    return json.dumps(lower(data), sort_keys=True, separators=(',', ':'))
