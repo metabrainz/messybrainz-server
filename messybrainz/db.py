@@ -4,7 +4,7 @@ from sqlalchemy.pool import NullPool
 import sqlalchemy
 import sys
 
-# This value must be incremented after schema changes on replicated tables!
+# This value must be incremented after schema changes on replicated tables!.
 SCHEMA_VERSION = 1
 
 engine = None
