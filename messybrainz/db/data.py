@@ -19,7 +19,7 @@ def get_id_from_meta_hash(connection, data):
     """
 
     meta = {"artist": data["artist"], "title": data["title"]}
-    meta_json = _convert_to_messybrainz_json(meta)
+    meta_json = convert_to_messybrainz_json(meta, transform=True)
     meta_sha256 = sha256(meta_json.encode("utf-8")).hexdigest()
 
     query = text("""SELECT s.gid
@@ -119,7 +119,7 @@ def get_id_from_recording(connection, data):
     Returns:
         the MessyBrainz ID of the recording with passed data if it exists, None otherwise
     """
-    data_json = _convert_to_messybrainz_json(data)
+    data_json = convert_to_messybrainz_json(data, transform=True)
     data_sha256 = sha256(data_json.encode("utf-8")).hexdigest()
 
     query = text("""SELECT s.gid
@@ -144,12 +144,16 @@ def submit_recording(connection, data):
     Returns:
         the Recording MessyBrainz ID of the data
     """
-    data_json = _convert_to_messybrainz_json(data)
-    data_sha256 = sha256(data_json.encode("utf-8")).hexdigest()
+    sha256_json = convert_to_messybrainz_json(data, transform=True)
+    data_sha256 = sha256(sha256_json.encode("utf-8")).hexdigest()
+
+    data_json = convert_to_messybrainz_json(data, transform=False)
 
     meta = {"artist": data["artist"], "title": data["title"]}
-    meta_json = _convert_to_messybrainz_json(meta)
-    meta_sha256 = sha256(meta_json.encode("utf-8")).hexdigest()
+    meta_sha256_json = convert_to_messybrainz_json(meta, transform=True)
+    meta_sha256 = sha256(meta_sha256_json.encode("utf-8")).hexdigest()
+
+    meta_json = convert_to_messybrainz_json(meta, transform=False)
 
     artist = get_artist_credit(connection, data["artist"])
     if not artist:
@@ -242,14 +246,16 @@ def link_recording_to_recording_id(connection, msid, mbid):
     })
 
 
-def _convert_to_messybrainz_json(data):
+def convert_to_messybrainz_json(data, transform=False):
     """ Converts the specified data dict into JSON strings, while
-    applying MessyBrainz' transformations which include
+    applying MessyBrainz' transformations which include (if needed)
         * sorting by keys
         * lowercasing all values
 
     Args:
         data (dict): the dict to be converted into MessyBrainz JSON
+        transform (bool): a bool flag specifying whether MessyBrainz transformations
+                          should be applied
 
     Returns:
         str: the MessyBrainz JSON after transformations
@@ -268,4 +274,8 @@ def _convert_to_messybrainz_json(data):
                 result[key] = value
         return result
 
-    return json.dumps(lower(data), sort_keys=True, separators=(',', ':'))
+    final_data = data
+    if transform:
+        final_data = lower(data)
+
+    return json.dumps(final_data, sort_keys=True, separators=(',', ':'))
