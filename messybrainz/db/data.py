@@ -268,7 +268,7 @@ def convert_to_messybrainz_json(data, transform=False):
         for key, value in d.items():
             if isinstance(value, str):
                 result[key] = value.lower()
-            elif isinstace(value, dict):
+            elif isinstance(value, dict):
                 result[key] = lower(value)
             else:
                 result[key] = value
