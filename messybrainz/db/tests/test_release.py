@@ -51,6 +51,51 @@ class ReleaseTestCase(DatabaseTestCase):
         return msb_listens
 
 
+    def _add_data_to_recording_release_join(self):
+        """ Adds releases to recording_release_join table for recording MBIDs."""
+
+        recording_mbids_submitted = ["4a9818ba-5963-4761-864f-7d96841053d2",
+            "2977432b-f1a2-4c37-b60f-bac1ce4e0961",
+            "5465ca86-3881-4349-81b2-6efbd3a59451",
+        ]
+
+        releases_fetched = [
+            [
+                {'id': '6e18c5c8-e487-4f83-9ea6-281c574933b9', 'name': 'The Blueprint 3'},
+                {'id': '2829f1bc-b097-31f3-9fbc-00b4f7228a52', 'name': 'The Blueprint 3'},
+                {'id': '95ff991b-7af3-42bb-9979-470ec2bd3741', 'name': 'The Blueprint 3 [Soul Assassin Special Edition]'},
+                {'id': '5e782ae3-602b-48b7-99be-de6bcffa4aba', 'name': 'The Hits Collection, Volume 1'},
+                {'id': '0996e292-5cb4-476b-be04-640eeecca646', 'name': 'The Blueprint 3'},
+                {'id': '7ebaaa95-e316-3b20-8819-7e4ca648c135', 'name': 'The Hits Collection, Volume 1'},
+                {'id': '74465497-af1a-40f2-8998-3f837a8d29ba', 'name': 'The Blueprint 3'},
+                {'id': '5b94f201-0343-4728-a851-05f5abff2495', 'name': 'The Blueprint 3'},
+                {'id': '4a441628-2e4d-4032-825f-6bdf4aee382e', 'name': 'The Hits Collection, Volume 1'}
+            ],
+            [
+                {'id': '8f0c9315-6f65-4098-98a8-765e447c6d78', 'name': "Wouldn't You Like to..."}
+            ],
+            [
+                {'id': 'f1183a86-36d2-4f1f-ab8f-6f965dc0b033', 'name': 'The Hits Collection Volume One'},
+                {'id': '7111c8bc-8549-4abc-8ab9-db13f65b4a55', 'name': 'Blueprint 2.1'},
+                {'id': '3c535d03-2fcc-467a-8d47-34b3250b8211', 'name': 'The Hits Collection Volume One'},
+                {'id': '0ff452e3-c306-4082-b0dc-223725f4fbbf', 'name': 'The Blueprint²: The Gift & The Curse'},
+                {'id': '801678aa-5d30-4342-8227-e9618f164cca', 'name': 'The Blueprint²: The Gift & The Curse'},
+                {'id': '5e782ae3-602b-48b7-99be-de6bcffa4aba', 'name': 'The Hits Collection, Volume 1'},
+                {'id': '4f41108c-db36-4616-8614-f504fdef287a', 'name': 'Blueprint 2.1'},
+                {'id': '89f64145-2f75-41d1-831a-517b785ed75a', 'name': "The Blueprint Collector's Edition"},
+                {'id': '7ebaaa95-e316-3b20-8819-7e4ca648c135', 'name': 'The Hits Collection, Volume 1'},
+                {'id': '77a74b85-0ae0-338f-aaca-4f36cd394f88', 'name': 'Blueprint 2.1'},
+                {'id': 'd75e103c-5ef4-4146-ae81-e27d19dc7fc4', 'name': "The Blueprint Collector's Edition"},
+                {'id': '2c5e4198-24cf-3c95-a16e-83be8e877dfa', 'name': 'The Blueprint²: The Gift & The Curse'},
+                {'id': '4a441628-2e4d-4032-825f-6bdf4aee382e', 'name': 'The Hits Collection, Volume 1'}
+            ]
+        ]
+
+        with db.engine.begin() as connection:
+            for recording_mbid, releases in zip(recording_mbids_submitted, releases_fetched):
+                release.insert_releases_to_recording_release_join(connection, recording_mbid, releases)
+
+
     def test_fetch_unclustered_distinct_release_mbids(self):
         """Tests if release_mbids are correctly fetched from recording_json table."""
 
@@ -641,3 +686,284 @@ class ReleaseTestCase(DatabaseTestCase):
             release.fetch_and_store_releases_for_all_recording_mbids()
             releases = release.get_releases_for_recording_mbid(connection, "9ed38583-437f-4186-8183-9c31ffa2c116")
             self.assertSetEqual(set(releases), set(releases_fetched[3]))
+
+
+    def test_fetch_unclustered_release_mbids_using_recording_release_join(self):
+        """Tests if release mbids are fetched correctly."""
+
+        msb_listens = self._load_test_data("recordings_for_clustering_using_fetched_releases.json")
+        submit_listens(msb_listens)
+
+        self._add_data_to_recording_release_join()
+
+        with db.engine.begin() as connection:
+            releases_fetched = release.fetch_unclustered_release_mbids_using_recording_release_join(connection)
+            self.assertSetEqual(set(releases_fetched), set([
+                UUID("7ebaaa95-e316-3b20-8819-7e4ca648c135"),
+                UUID("5b94f201-0343-4728-a851-05f5abff2495"),
+                UUID("6e18c5c8-e487-4f83-9ea6-281c574933b9"),
+                UUID("77a74b85-0ae0-338f-aaca-4f36cd394f88"),
+                UUID("2829f1bc-b097-31f3-9fbc-00b4f7228a52"),
+                UUID("5e782ae3-602b-48b7-99be-de6bcffa4aba"),
+                UUID("0ff452e3-c306-4082-b0dc-223725f4fbbf"),
+                UUID("74465497-af1a-40f2-8998-3f837a8d29ba"),
+                UUID("0996e292-5cb4-476b-be04-640eeecca646"),
+                UUID("2c5e4198-24cf-3c95-a16e-83be8e877dfa"),
+                UUID("4a441628-2e4d-4032-825f-6bdf4aee382e"),
+                UUID("801678aa-5d30-4342-8227-e9618f164cca"),
+                UUID("4f41108c-db36-4616-8614-f504fdef287a"),
+                UUID("7111c8bc-8549-4abc-8ab9-db13f65b4a55"),
+                UUID('8f0c9315-6f65-4098-98a8-765e447c6d78'),
+            ]))
+
+
+    def test_fetch_unclustered_gids_for_release_using_recording_release_join(self):
+        """ Tests if unclustered gids are fetched correctly using
+            recording_release_join table.
+        """
+
+        msb_listens = self._load_test_data("recordings_for_clustering_using_fetched_releases.json")
+        submit_listens(msb_listens)
+        self._add_data_to_recording_release_join()
+
+        with db.engine.begin() as connection:
+            gids = release.fetch_unclustered_gids_for_release_using_recording_release_join(connection,
+                        UUID("7ebaaa95-e316-3b20-8819-7e4ca648c135")
+                    )
+            gids_from_data = UUID(data.get_release(connection, "The Hits Collection, Volume 1"))
+            self.assertListEqual(gids, [gids_from_data])
+
+
+    def test_fetch_release_left_to_cluster_using_recording_release_join(self):
+        """ Tests if releases left to cluster are correctly fetched using
+            recording_release_join table.
+        """
+
+        msb_listens = self._load_test_data("recordings_for_clustering_using_fetched_releases.json")
+        submit_listens(msb_listens)
+        self._add_data_to_recording_release_join()
+
+        with db.engine.begin() as connection:
+            release.create_clusters_using_fetched_releases_without_anomalies(connection)
+
+            release_left = release.fetch_release_left_to_cluster_using_recording_release_join(connection)
+            self.assertSetEqual(set(release_left), set([
+                UUID('4a441628-2e4d-4032-825f-6bdf4aee382e'),
+                UUID('6e18c5c8-e487-4f83-9ea6-281c574933b9'),
+                UUID('801678aa-5d30-4342-8227-e9618f164cca'),
+                UUID('4f41108c-db36-4616-8614-f504fdef287a'),
+                UUID('2829f1bc-b097-31f3-9fbc-00b4f7228a52'),
+                UUID('7111c8bc-8549-4abc-8ab9-db13f65b4a55'),
+                UUID('5e782ae3-602b-48b7-99be-de6bcffa4aba'),
+                UUID('74465497-af1a-40f2-8998-3f837a8d29ba'),
+                UUID('0996e292-5cb4-476b-be04-640eeecca646'),
+                UUID('2c5e4198-24cf-3c95-a16e-83be8e877dfa')
+            ]))
+
+    def test_get_release_gids_from_recording_using_fetched_releases(self):
+        """ Tests if release gids are fetched correctly from recording table
+            using fetched releases stored in recoring_release_join table.
+        """
+
+        msb_listens = self._load_test_data("recordings_for_clustering_using_fetched_releases.json")
+        submit_listens(msb_listens)
+        self._add_data_to_recording_release_join()
+
+        with db.engine.begin() as connection:
+            gids = release.get_release_gids_from_recording_using_fetched_releases(connection,
+                UUID('4a441628-2e4d-4032-825f-6bdf4aee382e')
+            )
+            gids_from_data = UUID(data.get_release(connection, "The Hits Collection, Volume 1"))
+            self.assertListEqual(gids, [gids_from_data])
+
+
+    def test_get_recordings_metadata_using_recording_release_join(self):
+        """ Tests if recordings metadata is fetched correctly using release MBID
+            and join on recording_release_join table.
+        """
+
+        recording_1 = {
+            "artist": "Jay‐Z & Beyoncé",
+            "title": "'03 Bonnie & Clyde",
+            "recording_mbid": "5465ca86-3881-4349-81b2-6efbd3a59451",
+            "release": "The Blueprint²: The Gift & The Curse",
+        }
+        submit_listens([recording_1])
+        self._add_data_to_recording_release_join()
+        
+        with db.engine.begin() as connection:
+            recordings = release.get_recordings_metadata_using_recording_release_join(connection, "0ff452e3-c306-4082-b0dc-223725f4fbbf")
+            self.assertDictEqual(recording_1, recordings[0])
+
+
+    def test_create_clusters_using_fetched_releases_without_anomalies(self):
+        """ Tests if clusters are correctly formed using fetched releases without
+            considering anomalies.
+        """
+
+        msb_listens = self._load_test_data("recordings_for_clustering_using_fetched_releases.json")
+        submit_listens(msb_listens)
+        self._add_data_to_recording_release_join()
+
+        with db.engine.begin() as connection:
+            clusters_modified, clusters_add_to_redirect = release.create_clusters_using_fetched_releases_without_anomalies(connection)
+            self.assertEqual(clusters_modified, 5)
+            self.assertEqual(clusters_add_to_redirect, 5)
+
+            # "Wouldn't You Like to..." forms one cluster
+            gid_from_data = UUID(data.get_release(connection, "Wouldn't You Like to..."))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertListEqual(release_mbids, [UUID("8f0c9315-6f65-4098-98a8-765e447c6d78")])
+
+            # "The Blueprint 3" with MBID "5b94f201-0343-4728-a851-05f5abff2495" gets clustered
+            gid_from_data = UUID(data.get_release(connection, "The Blueprint 3"))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertListEqual(release_mbids, [UUID("5b94f201-0343-4728-a851-05f5abff2495")])
+
+            # "The Hits Collection, Volume 1" with MBID "7ebaaa95-e316-3b20-8819-7e4ca648c135" gets clustered
+            gid_from_data = UUID(data.get_release(connection, "The Hits Collection, Volume 1"))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertListEqual(release_mbids, [UUID("7ebaaa95-e316-3b20-8819-7e4ca648c135")])
+
+            # "The Blueprint²: The Gift & The Curse" with MBID "0ff452e3-c306-4082-b0dc-223725f4fbbf" gets clustered
+            gid_from_data = UUID(data.get_release(connection, "The Blueprint²: The Gift & The Curse"))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertListEqual(release_mbids, [UUID("0ff452e3-c306-4082-b0dc-223725f4fbbf")])
+
+            # "Blueprint 2.1" with MBID "77a74b85-0ae0-338f-aaca-4f36cd394f88" gets clustered
+            gid_from_data = UUID(data.get_release(connection, "Blueprint 2.1"))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertListEqual(release_mbids, [UUID("77a74b85-0ae0-338f-aaca-4f36cd394f88")])
+
+
+    def test_create_clusters_using_fetched_releases_for_anomalies(self):
+        """ Tests if clusters are correctly formed for anomalies using
+            recording_release_join table.
+        """
+
+        msb_listens = self._load_test_data("recordings_for_clustering_using_fetched_releases.json")
+        submit_listens(msb_listens)
+        self._add_data_to_recording_release_join()
+
+        with db.engine.begin() as connection:
+            clusters_modified, clusters_add_to_redirect = release.create_clusters_using_fetched_releases_without_anomalies(connection)
+            self.assertEqual(clusters_modified, 5)
+            self.assertEqual(clusters_add_to_redirect, 5)
+
+            # Before clustering anomalies we get the following clusters
+            # "The Blueprint 3" with MBID "5b94f201-0343-4728-a851-05f5abff2495" gets clustered
+            gid_from_data = UUID(data.get_release(connection, "The Blueprint 3"))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertListEqual(release_mbids, [UUID("5b94f201-0343-4728-a851-05f5abff2495")])
+
+            # "The Hits Collection, Volume 1" with MBID "7ebaaa95-e316-3b20-8819-7e4ca648c135" gets clustered
+            gid_from_data = UUID(data.get_release(connection, "The Hits Collection, Volume 1"))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertListEqual(release_mbids, [UUID("7ebaaa95-e316-3b20-8819-7e4ca648c135")])
+
+            # "The Blueprint²: The Gift & The Curse" with MBID "0ff452e3-c306-4082-b0dc-223725f4fbbf" gets clustered
+            gid_from_data = UUID(data.get_release(connection, "The Blueprint²: The Gift & The Curse"))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertListEqual(release_mbids, [UUID("0ff452e3-c306-4082-b0dc-223725f4fbbf")])
+
+            # "Blueprint 2.1" with MBID "77a74b85-0ae0-338f-aaca-4f36cd394f88" gets clustered
+            gid_from_data = UUID(data.get_release(connection, "Blueprint 2.1"))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertListEqual(release_mbids, [UUID("77a74b85-0ae0-338f-aaca-4f36cd394f88")])
+
+            clusters_add_to_redirect = release.create_clusters_using_fetched_releases_for_anomalies(connection)
+            self.assertEqual(clusters_add_to_redirect, 10)
+
+            # Other unclustered MBIDs for "The Blueprint 3" get added into release_redirect table.
+            gid_from_data = UUID(data.get_release(connection, "The Blueprint 3"))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertSetEqual(set(release_mbids), set([
+                UUID('5b94f201-0343-4728-a851-05f5abff2495'),
+                UUID('6e18c5c8-e487-4f83-9ea6-281c574933b9'),
+                UUID('2829f1bc-b097-31f3-9fbc-00b4f7228a52'),
+                UUID('74465497-af1a-40f2-8998-3f837a8d29ba'),
+                UUID('0996e292-5cb4-476b-be04-640eeecca646')
+            ]))
+
+            # Other unclustered MBIDs for "The Hits Collection, Volume 1" get added into release_redirect table.
+            gid_from_data = UUID(data.get_release(connection, "The Hits Collection, Volume 1"))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertSetEqual(set(release_mbids), set([
+                UUID('7ebaaa95-e316-3b20-8819-7e4ca648c135'),
+                UUID('4a441628-2e4d-4032-825f-6bdf4aee382e'),
+                UUID('5e782ae3-602b-48b7-99be-de6bcffa4aba')
+            ]))
+
+            # Other unclustered MBIDs for "The Blueprint²: The Gift & The Curse" get added into release_redirect table.
+            gid_from_data = UUID(data.get_release(connection, "The Blueprint²: The Gift & The Curse"))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertSetEqual(set(release_mbids), set([
+                UUID('0ff452e3-c306-4082-b0dc-223725f4fbbf'),
+                UUID('801678aa-5d30-4342-8227-e9618f164cca'),
+                UUID('2c5e4198-24cf-3c95-a16e-83be8e877dfa')
+            ]))
+
+            # Other unclustered MBIDs for "Blueprint 2.1" get added into release_redirect table.
+            gid_from_data = UUID(data.get_release(connection, "Blueprint 2.1"))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertSetEqual(set(release_mbids), set([
+                UUID('77a74b85-0ae0-338f-aaca-4f36cd394f88'),
+                UUID('4f41108c-db36-4616-8614-f504fdef287a'),
+                UUID('7111c8bc-8549-4abc-8ab9-db13f65b4a55')
+            ]))
+
+
+    def test_create_clusters_using_fetched_releases(self):
+        """ Tests if clusters are created correctly using fetched releases. """
+
+        msb_listens = self._load_test_data("recordings_for_clustering_using_fetched_releases.json")
+        submit_listens(msb_listens)
+        self._add_data_to_recording_release_join()
+
+        with db.engine.begin() as connection:
+            clusters_modified, clusters_add_to_redirect = release.create_clusters_using_fetched_releases()
+            self.assertEqual(clusters_modified, 5)
+            self.assertEqual(clusters_add_to_redirect, 15)
+
+            # "Wouldn't You Like to..." forms one cluster
+            gid_from_data = UUID(data.get_release(connection, "Wouldn't You Like to..."))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertListEqual(release_mbids, [UUID("8f0c9315-6f65-4098-98a8-765e447c6d78")])
+
+            # "The Blueprint 3" forms one cluster
+            gid_from_data = UUID(data.get_release(connection, "The Blueprint 3"))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertSetEqual(set(release_mbids), set([
+                UUID('5b94f201-0343-4728-a851-05f5abff2495'),
+                UUID('6e18c5c8-e487-4f83-9ea6-281c574933b9'),
+                UUID('2829f1bc-b097-31f3-9fbc-00b4f7228a52'),
+                UUID('74465497-af1a-40f2-8998-3f837a8d29ba'),
+                UUID('0996e292-5cb4-476b-be04-640eeecca646')
+            ]))
+
+            # "The Hits Collection, Volume 1" forms one cluster
+            gid_from_data = UUID(data.get_release(connection, "The Hits Collection, Volume 1"))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertSetEqual(set(release_mbids), set([
+                UUID('7ebaaa95-e316-3b20-8819-7e4ca648c135'),
+                UUID('4a441628-2e4d-4032-825f-6bdf4aee382e'),
+                UUID('5e782ae3-602b-48b7-99be-de6bcffa4aba')
+            ]))
+
+            # "The Blueprint²: The Gift & The Curse" forms one cluster
+            gid_from_data = UUID(data.get_release(connection, "The Blueprint²: The Gift & The Curse"))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertSetEqual(set(release_mbids), set([
+                UUID('0ff452e3-c306-4082-b0dc-223725f4fbbf'),
+                UUID('801678aa-5d30-4342-8227-e9618f164cca'),
+                UUID('2c5e4198-24cf-3c95-a16e-83be8e877dfa')
+            ]))
+
+            # "Blueprint 2.1" forms one cluster
+            gid_from_data = UUID(data.get_release(connection, "Blueprint 2.1"))
+            release_mbids = get_release_mbids_using_msid(connection, gid_from_data)
+            self.assertSetEqual(set(release_mbids), set([
+                UUID('77a74b85-0ae0-338f-aaca-4f36cd394f88'),
+                UUID('4f41108c-db36-4616-8614-f504fdef287a'),
+                UUID('7111c8bc-8549-4abc-8ab9-db13f65b4a55')
+            ]))
