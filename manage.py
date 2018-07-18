@@ -305,31 +305,54 @@ def truncate_recording_release_join_table():
 
 
 @cli.command()
-@click.option("--verbose", "-v", default="WARNING", help="Print debug information for given verbose level(WARNING, INFO, DEBUG).")
-def create_clusters_using_fetched_artist_mbids(verbose="WARNING"):
+@click.option("--verbose", "-v", is_flag=True, help="Print debug information.")
+def create_clusters_using_fetched_artist_mbids(verbose=False):
     """Creates clusters for artist_credits using artist MBIDs fetched from MusicBrainz
        database and stored in recording_artist_join table.
     """
 
-    try:
-        if verbose == "INFO":
-            logging.basicConfig(format='%(message)s', level=logging.INFO)
-        elif verbose == "DEBUG":
-            logging.basicConfig(format='%(message)s', level=logging.DEBUG)
-        elif verbose != "WARNING":
-            print("Invalid logging level specified. Using default logging level(WARNING).")
+    if verbose:
+        logging.basicConfig(format='%(message)s', level=logging.DEBUG)
+    else:
+        logging.basicConfig(format='%(message)s', level=logging.INFO)
 
-        print("Creating artist_credit clusters...")
+    try:
+        logging.info("Creating artist_credit clusters...")
         db.init_db_engine(config.SQLALCHEMY_DATABASE_URI)
 
         logging.debug("=" * 80)
         clusters_modified, clusters_add_to_redirect = artist.create_clusters_using_fetched_artist_mbids()
         logging.debug("=" * 80)
-        print("Clusters modified: {0}.".format(clusters_modified))
-        print("Clusters add to redirect table: {0}.".format(clusters_add_to_redirect))
-        print("Done!")
+        logging.info("Clusters modified: {0}.".format(clusters_modified))
+        logging.info("Clusters add to redirect table: {0}.".format(clusters_add_to_redirect))
+        logging.info("Done!")
     except Exception as error:
-        print("While creating artist_credit clusters using fetched artist MBIDs. An error occured: {0}".format(error))
+        logging.info("While creating artist_credit clusters using fetched artist MBIDs. An error occured: {0}".format(error))
+
+
+@click.option("--verbose", "-v", is_flag=True, help="Print debug information.")
+def create_clusters_using_fetched_releases(verbose=False):
+    """Creates clusters for releases using releases fetched from MusicBrainz
+       database and stored in recording_release_join table.
+    """
+
+    if verbose:
+        logging.basicConfig(format='%(message)s', level=logging.DEBUG)
+    else:
+        logging.basicConfig(format='%(message)s', level=logging.INFO)
+
+    try:
+        logging.info("Creating release clusters...")
+        db.init_db_engine(config.SQLALCHEMY_DATABASE_URI)
+
+        logging.debug("=" * 80)
+        clusters_modified, clusters_add_to_redirect = release.create_clusters_using_fetched_releases()
+        logging.debug("=" * 80)
+        logging.info("Clusters modified: {0}.".format(clusters_modified))
+        logging.info("Clusters add to redirect table: {0}.".format(clusters_add_to_redirect))
+        logging.info("Done!")
+    except Exception as error:
+        logging.info("While creating release clusters using fetched releases. An error occured: {0}".format(error))
 
 
 if __name__ == '__main__':

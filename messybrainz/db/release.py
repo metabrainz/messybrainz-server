@@ -396,3 +396,189 @@ def fetch_and_store_releases_for_all_recording_mbids():
                 pass
 
         return num_recording_mbids_processed, num_recording_mbids_added
+
+
+def fetch_unclustered_release_mbids_using_recording_release_join(connection):
+    """ Fetches release MBIDs that are not in release_cluster table using
+        join on recording_json and recording_release_join on same recording MBID
+        and same release name as of recording_json.data.
+
+    Args:
+        connection: the sqlalchemy db connection to be used to execute queries
+
+    Returns:
+        release_mbids(list): list of release MBIDs.
+    """
+
+    release_mbids = connection.execute(text("""
+        SELECT DISTINCT rrj.release_mbid
+                   FROM recording_release_join AS rrj
+                   JOIN recording_json AS recj
+                     ON rrj.recording_mbid = (recj.data ->> 'recording_mbid')::uuid
+                    AND rrj.release_name = (recj.data ->> 'release')
+                   JOIN recording AS rec
+                     ON rec.data = recj.id
+              LEFT JOIN release_cluster AS relc
+                     ON rec.release = relc.release_gid
+                  WHERE relc.release_gid IS NULL
+    """))
+
+    return [release_mbid[0] for release_mbid in release_mbids]
+
+
+def fetch_unclustered_gids_for_release_using_recording_release_join(connection, release_mbid):
+    """Fetches the gids corresponding to a release MBID that are
+       not present in release_cluster table but present in recording release join.
+
+    Args:
+        connection: the sqlalchemy db connection to be used to execute queries
+        release_mbid (UUID): the release MBID for which gids are to be fetched.
+
+    Returns:
+        List of gids.
+    """
+
+    gids = connection.execute(text("""
+        SELECT DISTINCT rec.release
+                   FROM recording_json AS recj
+                   JOIN recording_release_join AS rrj
+                     ON rrj.recording_mbid = (recj.data ->> 'recording_mbid')::uuid
+                    AND rrj.release_name = (recj.data ->> 'release')
+                   JOIN recording AS rec
+                     ON recj.id = rec.data
+              LEFT JOIN release_cluster AS relc
+                     ON rec.release = relc.release_gid
+                  WHERE rrj.release_mbid = :release_mbid
+                    AND relc.release_gid IS NULL
+    """), {
+        "release_mbid": release_mbid,
+    })
+
+    return [gid[0] for gid in gids]
+
+
+def fetch_release_left_to_cluster_using_recording_release_join(connection):
+    """ Returns a list of release MBID using recording_release_join table
+        for the release MBIDs that were not added to redirect table after
+        executing the first phase of clustering. These are anomalies.
+
+    Args:
+        connection: the sqlalchemy db connection to be used to execute queries
+    Returns:
+        mbids(list): list of release MBIDs left to cluster.
+    """
+
+    result = connection.execute(text("""
+        SELECT DISTINCT rrj.release_mbid
+                   FROM recording AS rec
+                   JOIN recording_json AS recj
+                     ON rec.data = recj.id
+                   JOIN recording_release_join AS rrj
+                     ON rrj.recording_mbid = (recj.data ->> 'recording_mbid')::uuid
+                    AND rrj.release_name = (recj.data ->> 'release')
+              LEFT JOIN release_redirect AS relr
+                     ON rrj.release_mbid = relr.release_mbid
+                  WHERE relr.release_mbid IS NULL
+    """))
+
+    return [r[0] for r in result]
+
+
+def get_release_gids_from_recording_using_fetched_releases(connection, release_mbid):
+    """Returns release MSIDs using a release MBID using recording_release_join table.
+    Args:
+        connection: the sqlalchemy db connection to be used to execute queries
+        release_mbid (UUID): a release MBID for which gids are to be fetched.
+    Returns:
+        gids(list): list of release gids for a given release MBID.
+    """
+
+    result = connection.execute(text("""
+        SELECT DISTINCT rec.release
+                   FROM recording AS rec
+                   JOIN recording_json AS recj
+                     ON rec.data = recj.id
+                   JOIN recording_release_join AS rrj
+                     ON rrj.recording_mbid = (recj.data ->> 'recording_mbid')::uuid
+                    AND rrj.release_name = (recj.data ->> 'release')
+                  WHERE rrj.release_mbid = :release_mbid
+    """), {
+        "release_mbid": release_mbid,
+    })
+
+    return [release_gid[0] for release_gid in result]
+
+
+def get_recordings_metadata_using_recording_release_join(connection, release_mbid):
+    """ Returns recording metadata using recording_release_join table for a given
+        release MBID.
+    """
+
+    recordings = connection.execute(text("""
+            SELECT recj.data
+            FROM recording_json AS recj
+            JOIN recording_release_join AS rrj
+              ON rrj.recording_mbid = (recj.data ->> 'recording_mbid')::uuid
+             AND rrj.release_name = (recj.data ->> 'release')
+            WHERE rrj.release_mbid = :mbid
+        """), {
+            "mbid": release_mbid,
+        })
+
+    return [recording[0] for recording in recordings]
+
+
+def create_clusters_using_fetched_releases_without_anomalies(connection):
+    """Creates clusters for release MBIDs fetched in recording_release_join table
+       without considering anomalies.
+
+    Args:
+        connection: the sqlalchemy db connection to be used to execute queries
+
+    Returns:
+        clusters_modified (int): number of clusters modified by the script.
+        clusters_add_to_redirect (int): number of clusters added to redirect table.
+    """
+
+    return db_common.create_entity_clusters_without_considering_anomalies(connection,
+        fetch_unclustered_release_mbids_using_recording_release_join,
+        fetch_unclustered_gids_for_release_using_recording_release_join,
+        get_release_cluster_id_using_release_mbid,
+        link_release_mbid_to_release_msid,
+        insert_release_cluster,
+        get_recordings_metadata_using_recording_release_join
+    )
+
+
+def create_clusters_using_fetched_releases_for_anomalies(connection):
+    """ Creates clusters for release MBIDs fetched from MusicBrainz database and stored in
+        recording_release_join table considering anomalies.
+
+    Args:
+        connection: the sqlalchemy db connection to be used to execute queries
+
+    Returns:
+        clusters_add_to_redirect (int): number of clusters added to redirect table.
+    """
+
+    return db_common.create_entity_clusters_for_anomalies(connection,
+        fetch_release_left_to_cluster_using_recording_release_join,
+        get_release_gids_from_recording_using_fetched_releases,
+        get_cluster_id_using_msid,
+        link_release_mbid_to_release_msid,
+        get_recordings_metadata_using_recording_release_join
+    )
+
+
+def create_clusters_using_fetched_releases():
+    """Creates clusters for releases using fetched releases in recording_release_join table.
+
+    Returns:
+        clusters_modified (int): number of clusters modified by the script.
+        clusters_add_to_redirect (int): number of clusters added to redirect table.
+    """
+
+    return db.common.create_entity_clusters(
+        create_clusters_using_fetched_releases_without_anomalies,
+        create_clusters_using_fetched_releases_for_anomalies,
+    )
