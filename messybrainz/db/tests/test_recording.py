@@ -1,5 +1,5 @@
 import json
-from messybrainz import submit_listens_and_sing_me_a_sweet_song as submit_listens
+from messybrainz import insert_all_in_transaction as submit_listens
 from messybrainz import db
 from messybrainz.db import data
 from messybrainz.db.testing import DatabaseTestCase

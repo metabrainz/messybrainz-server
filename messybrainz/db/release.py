@@ -22,8 +22,9 @@ def insert_release_cluster(connection, cluster_id, release_gids):
     connection.execute(text("""
         INSERT INTO release_cluster (cluster_id, release_gid, updated)
              VALUES (:cluster_id, :release_gid, now())
-        """), values
-        )
+        ON CONFLICT (cluster_id, release_gid) DO NOTHING
+    """), values
+    )
 
 
 def insert_releases_to_recording_release_join(connection, recording_mbid, releases):
@@ -111,6 +112,7 @@ def link_release_mbid_to_release_msid(connection, cluster_id, mbid):
     connection.execute(text("""
         INSERT INTO release_redirect (release_cluster_id, release_mbid)
              VALUES (:cluster_id, :mbid)
+        ON CONFLICT (release_cluster_id, release_mbid) DO NOTHING
     """), {
         "cluster_id": cluster_id,
         "mbid": mbid,

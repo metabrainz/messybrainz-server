@@ -1,6 +1,6 @@
 from messybrainz import data
 from messybrainz import db
-from messybrainz import submit_listens_and_sing_me_a_sweet_song as submit_listens
+from messybrainz import insert_all_in_transaction as submit_listens
 from messybrainz.db import artist
 from messybrainz.db.testing import DatabaseTestCase
 from unittest.mock import patch

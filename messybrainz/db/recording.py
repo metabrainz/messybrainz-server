@@ -1,6 +1,15 @@
+from messybrainz.db import data
+from messybrainz.webserver import create_app
+from flask import current_app
 from messybrainz import db
+from pika_pool import Overflow as PikaPoolOverflow, Timeout as PikaPoolTimeout
 from sqlalchemy import text
+from werkzeug.exceptions import InternalServerError, ServiceUnavailable
 
+import messybrainz.webserver.rabbitmq_connection as rabbitmq_connection
+import pika
+import pika.exceptions
+import ujson
 
 def insert_recording_cluster(connection, cluster_id, recording_gids):
     """Creates new cluster in the recording_cluster table.
@@ -18,6 +27,7 @@ def insert_recording_cluster(connection, cluster_id, recording_gids):
     connection.execute(text("""
         INSERT INTO recording_cluster (cluster_id, recording_gid, updated)
              VALUES (:cluster_id, :recording_gid, now())
+        ON CONFLICT (cluster_id, recording_gid) DO NOTHING
     """), values
     )
 
@@ -85,6 +95,7 @@ def link_recording_mbid_to_recording_msid(connection, cluster_id, mbid):
     connection.execute(text("""
         INSERT INTO recording_redirect (recording_cluster_id, recording_mbid)
              VALUES (:cluster_id, :mbid)
+        ON CONFLICT (recording_cluster_id, recording_mbid) DO NOTHING
     """), {
         "cluster_id": cluster_id,
         "mbid": mbid,
@@ -148,3 +159,74 @@ def create_recording_clusters():
                 clusters_modified += 1
 
     return clusters_modified, clusters_add_to_redirect
+
+
+def cluster_new_recording(recording_data):
+    """ Tries to associate and cluster newly inserted recording.
+
+    Args:
+        recording_data(dict): Data present in the recording.
+
+    Returns:
+        cluster_id(UUID): Cluster ID for the new recording.
+    """
+
+    try:
+        _send_recording_to_queue(recording_data)
+    except (InternalServerError, ServiceUnavailable) as e:
+        raise
+    except Exception as e:
+        print(e)
+
+
+def _send_recording_to_queue(recording_data):
+    # check if rabbitmq connection exists or not
+    # and if not then try to connect
+    try:
+        rabbitmq_connection.init_rabbitmq_connection(current_app)
+    except ConnectionError as e:
+        current_app.logger.error('Cannot connect to RabbitMQ: %s' % str(e))
+        raise ServiceUnavailable('Cannot submit recording to queue, please try again later.')
+
+    app = create_app()
+    with app.app_context():
+        publish_data_to_queue(
+            data=recording_data,
+            exchange=current_app.config['INCOMING_EXCHANGE'],
+            queue=current_app.config['INCOMING_QUEUE'],
+            error_msg='Cannot submit recording to queue, please try again later.',
+        )
+
+
+def publish_data_to_queue(data, exchange, queue, error_msg):
+    """ Publish specified data to the specified queue.
+
+    Args:
+        data: the data to be published
+        exchange (str): the name of the exchange
+        queue (str): the name of the queue
+        error_msg (str): the error message to be returned in case of an error
+    """
+
+    try:
+        with rabbitmq_connection._rabbitmq.acquire() as cxn:
+            cxn.channel.exchange_declare(exchange=exchange, exchange_type='fanout')
+            cxn.channel.queue_declare(queue, durable=True)
+            cxn.channel.basic_publish(
+                exchange=exchange,
+                routing_key='',
+                body=ujson.dumps(data),
+                properties=pika.BasicProperties(delivery_mode=2, ),
+            )
+    except pika.exceptions.ConnectionClosed as e:
+        current_app.logger.error("Connection to rabbitmq closed while trying to publish: %s" % str(e))
+        raise ServiceUnavailable(error_msg)
+    except PikaPoolOverflow:
+        current_app.logger.error("Cannot acquire pika channel. Increase number of available channels.")
+        raise ServiceUnavailable(error_msg)
+    except PikaPoolTimeout as e:
+        current_app.logger.error("Cannot publish to rabbitmq channel -- timeout: %s" % str(e))
+        raise ServiceUnavailable(error_msg)
+    except Exception as e:
+        current_app.logger.error("Cannot publish to rabbitmq channel: %s / %s" % (type(e).__name__, str(e)))
+        raise ServiceUnavailable(error_msg)

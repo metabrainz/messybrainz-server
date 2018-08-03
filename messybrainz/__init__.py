@@ -1,6 +1,7 @@
 from messybrainz.db import exceptions
 import sqlalchemy.exc
 from messybrainz.db import data
+from messybrainz.db import recording as db_recording
 
 from messybrainz import db
 
@@ -16,6 +17,8 @@ def submit_listens_and_sing_me_a_sweet_song(recordings):
         try:
             data = insert_all_in_transaction(recordings)
             success = True
+            for recording in recordings:
+                db_recording.cluster_new_recording(recording)
         except sqlalchemy.exc.IntegrityError as e:
             # If we get an IntegrityError then our transaction failed.
             # We should try again
@@ -46,4 +49,5 @@ def insert_all_in_transaction(recordings):
         for recording in recordings:
             result = insert_single(connection, recording)
             ret.append(result)
+
     return ret

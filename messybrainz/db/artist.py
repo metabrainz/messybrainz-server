@@ -142,6 +142,7 @@ def link_artist_mbids_to_artist_credit_cluster_id(connection, cluster_id, artist
     connection.execute(text("""
         INSERT INTO artist_credit_redirect (artist_credit_cluster_id, artist_mbids_array)
              VALUES (:cluster_id, array_sort(:artist_credit_mbids))
+        ON CONFLICT (artist_credit_cluster_id, artist_mbids_array) DO NOTHING
     """), {
         "cluster_id": cluster_id,
         "artist_credit_mbids": artist_credit_mbids,
@@ -172,6 +173,7 @@ def insert_artist_credit_cluster(connection, cluster_id, artist_credit_gids):
     connection.execute(text("""
         INSERT INTO artist_credit_cluster (cluster_id, artist_credit_gid, updated)
              VALUES (:cluster_id, :artist_credit_gid, now())
+        ON CONFLICT (cluster_id, artist_credit_gid) DO NOTHING
     """), values
     )
 
