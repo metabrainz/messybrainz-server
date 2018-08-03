@@ -6,6 +6,15 @@ from brainzutils.flask import CustomFlask
 from messybrainz import db
 
 
+def create_rabbitmq(app):
+    from messybrainz.webserver.rabbitmq_connection import init_rabbitmq_connection
+    try:
+        init_rabbitmq_connection(app)
+    except ConnectionError as e:
+        app.logger.error('Could not connect to RabbitMQ: %s', str(e))
+        return
+
+
 def create_app(debug=None, config_path=None):
     app = CustomFlask(
         import_name=__name__,
@@ -49,6 +58,9 @@ def create_app(debug=None, config_path=None):
         email_config=app.config.get('LOG_EMAIL'),
         sentry_config=app.config.get('LOG_SENTRY')
     )
+
+    # RabbitMQ connection
+    create_rabbitmq(app)
 
     # Extensions
     from flask_uuid import FlaskUUID

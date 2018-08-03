@@ -29,6 +29,18 @@ REDIS_HOST = "redis"
 REDIS_PORT = 6379
 REDIS_NAMESPACE = "messybrainz"
 
+# RabbitMQ
+RABBITMQ_HOST = "rabbitmq"
+RABBITMQ_PORT = 5672
+RABBITMQ_USERNAME = "guest"
+RABBITMQ_PASSWORD = "guest"
+RABBITMQ_VHOST = "/"
+
+# RabbitMQ exchanges and queues
+INCOMING_EXCHANGE = "incoming"
+INCOMING_QUEUE = "incoming"
+UNIQUE_EXCHANGE = "unique"
+UNIQUE_QUEUE = "unique"
 
 # LOGGING
 

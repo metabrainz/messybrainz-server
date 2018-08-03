@@ -6,6 +6,7 @@ version: "2"
 
 volumes:
   dbvolume:
+  rabbitmq:
 
 services:
 
@@ -21,6 +22,11 @@ services:
     volumes:
       - ./docker/data/redis:/data
 
+  rabbitmq:
+    image: rabbitmq:3.6.5
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq:z
+
   web:
     build:
       context: ..
@@ -35,6 +41,7 @@ services:
       - db
       - musicbrainz_db
       - redis
+      - rabbitmq
 
   musicbrainz_db:
     image: metabrainz/musicbrainz-test-database:schema-change-2017-q2
@@ -45,3 +52,12 @@ services:
       MB_IMPORT_DUMPS: "true"
     ports:
       - "5430:5432"
+
+  cluster:
+    image: web
+    command: python3 -m "messybrainz.cluster.cluster"
+    volumes:
+      - ..:/code/listenbrainz:z
+    depends_on:
+      - db
+      - rabbitmq
