@@ -396,3 +396,17 @@ def fetch_and_store_releases_for_all_recording_mbids():
                 pass
 
         return num_recording_mbids_processed, num_recording_mbids_added
+
+
+def get_msids_using_cluster_id(connection, cluster_id):
+    """Returns release MSIDs for a given cluster ID."""
+
+    result = connection.execute(text("""
+        SELECT release_gid
+          FROM release_cluster
+         WHERE cluster_id = :cluster_id
+    """), {
+        "cluster_id": cluster_id
+    })
+
+    return [r[0] for r in result]

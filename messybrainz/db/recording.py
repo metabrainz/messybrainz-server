@@ -148,3 +148,48 @@ def create_recording_clusters():
                 clusters_modified += 1
 
     return clusters_modified, clusters_add_to_redirect
+
+
+def get_recording_cluster_id_using_msid(connection, msid):
+    """Returns recording cluster ID using a given msid."""
+
+    cluster_id = connection.execute(text("""
+        SELECT cluster_id
+          FROM recording_cluster
+         WHERE recording_gid = :msid
+    """), {
+        "msid": msid
+    })
+
+    if cluster_id.rowcount:
+        return cluster_id.fetchone()['cluster_id']
+    else:
+        return None
+
+
+def get_gids_using_cluster_id(connection, cluster_id):
+    """Returns recording MSIDs using the cluster ID."""
+
+    result = connection.execute(text("""
+        SELECT recording_gid
+          FROM recording_cluster
+         WHERE cluster_id = :cluster_id
+    """), {
+        "cluster_id": cluster_id
+    })
+
+    return [r[0] for r in result]
+
+
+def get_mbids_using_cluster_id(connection, cluster_id):
+    """Returns recording MBID using given cluster ID."""
+
+    result = connection.execute(text("""
+        SELECT recording_mbid
+          FROM recording_redirect
+         WHERE recording_cluster_id = :cluster_id
+    """), {
+        "cluster_id": cluster_id
+    })
+
+    return [r[0] for r in result]

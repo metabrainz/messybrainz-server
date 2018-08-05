@@ -392,3 +392,17 @@ def create_artist_credit_clusters():
         create_artist_credit_clusters_without_considering_anomalies,
         create_artist_credit_clusters_for_anomalies,
     )
+
+
+def get_msids_using_cluster_id(connection, cluster_id):
+    """Returns a list of MSIDs provided a cluster_id for the artist_credit."""
+
+    result = connection.execute(text("""
+        SELECT artist_credit_gid
+          FROM artist_credit_cluster
+         WHERE cluster_id = :cluster_id
+    """), {
+        "cluster_id": cluster_id
+    })
+
+    return [r[0] for r in result]
