@@ -67,7 +67,7 @@ def create_entity_clusters_for_anomalies(connection,
             logger.info("=" * 80)
             logger.info("Cluster ID: {0}\n".format(cluster_id))
             logger.info("Recordings:")
-            if logger_level >= logging.DEBUG:
+            if logger_level <= logging.DEBUG:
                 recordings = get_recordings_metadata_using_entity_mbid(connection, entity_mbid)
                 if logger_level == logging.INFO:
                     formatted_rec = _format_recordings(recordings)
@@ -130,7 +130,7 @@ def create_entity_clusters_without_considering_anomalies(connection,
             logger.info("Cluster ID: {0}\n".format(cluster_id))
             logger.info("Number of entity added to this cluster: {0}.\n".format(len(gids)))
             logger.info("Recordings:")
-            if logger_level >= logging.DEBUG:
+            if logger_level <= logging.DEBUG:
                 recordings = get_recordings_metadata_using_entity_mbid(connection, entity_mbids)
                 if logger_level == logging.INFO:
                     formatted_rec = _format_recordings(recordings)
