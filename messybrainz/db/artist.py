@@ -125,6 +125,7 @@ def fetch_unclustered_distinct_artist_credit_mbids(connection):
               LEFT JOIN artist_credit_cluster AS acc
                      ON r.artist = acc.artist_credit_gid
                   WHERE rj.data ->> 'artist_mbids' IS NOT NULL
+                    AND rj.data ->> 'artist_mbids' != '[]'
                     AND acc.artist_credit_gid IS NULL
     """))
 
@@ -214,12 +215,15 @@ def get_artist_cluster_id_using_artist_mbids(connection, artist_credit_mbids):
        to the given artist MBIDs.
     """
 
-    # array_sort is a custom function for implementation
-    # details check admin/sql/create_functions.sql
+    artist_credit_mbids.sort()
     gid = connection.execute(text("""
         SELECT artist_credit_cluster_id
           FROM artist_credit_redirect
+<<<<<<< HEAD
          WHERE artist_mbids = array_sort(:artist_credit_mbids)
+=======
+         WHERE artist_mbids_array = :artist_credit_mbids
+>>>>>>> Add conditions to ignore recordings with empty MBIDs
     """), {
         "artist_credit_mbids": artist_credit_mbids,
     })
@@ -246,7 +250,8 @@ def fetch_artist_credits_left_to_cluster(connection):
               LEFT JOIN artist_credit_redirect AS acr
                      ON convert_json_array_to_sorted_uuid_array(rj.data -> 'artist_mbids') = acr.artist_mbids
                   WHERE rj.data ->> 'artist_mbids' IS NOT NULL
-                    AND acr.artist_mbids IS NULL
+                    AND rj.data ->> 'artist_mbids' != '[]'
+                    AND acr.artist_mbids_array IS NULL
     """))
 
     return [r[0] for r in result]

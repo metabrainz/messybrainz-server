@@ -65,7 +65,7 @@ def fetch_distinct_recording_mbids(connection):
         SELECT DISTINCT rj.data ->> 'recording_mbid'
                    FROM recording_json AS rj
               LEFT JOIN recording_cluster AS rc
-                     ON (rj.data ->> 'recording_mbid')::uuid = rc.recording_gid
+                     ON (rj.data ->> 'recording_mbid') = rc.recording_gid::text
                   WHERE rj.data ->> 'recording_mbid' IS NOT NULL
                     AND rc.recording_gid IS NULL
     """))

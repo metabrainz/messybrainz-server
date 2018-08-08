@@ -93,6 +93,8 @@ def fetch_unclustered_distinct_release_mbids(connection):
               LEFT JOIN release_cluster AS relc
                      ON rec.release = relc.release_gid
                   WHERE recj.data ->> 'release_mbid' IS NOT NULL
+                    AND recj.data ->> 'release_mbid' != ''
+                    AND recj.data ->> 'release' IS NOT NULL
                     AND relc.release_gid IS NULL
     """))
 
@@ -165,6 +167,8 @@ def fetch_release_left_to_cluster(connection):
               LEFT JOIN release_redirect AS relr
                      ON (recj.data ->> 'release_mbid')::uuid = relr.release_mbid
                   WHERE recj.data ->> 'release_mbid' IS NOT NULL
+                    AND recj.data ->> 'release_mbid' != ''
+                    AND recj.data ->> 'release' IS NOT NULL
                     AND relr.release_mbid IS NULL
     """))
 
@@ -329,8 +333,9 @@ def fetch_recording_mbids_not_in_recording_release_join(connection):
         SELECT DISTINCT recj.data ->> 'recording_mbid'
                    FROM recording_json AS recj
               LEFT JOIN recording_release_join AS rrj
-                     ON (recj.data ->> 'recording_mbid')::uuid = rrj.recording_mbid
+                     ON (recj.data ->> 'recording_mbid') = rrj.recording_mbid::text
                   WHERE recj.data ->> 'recording_mbid' IS NOT NULL
+                    AND recj.data ->> 'recording_mbid' != ''
                     AND rrj.recording_mbid IS NULL
     """))
 
