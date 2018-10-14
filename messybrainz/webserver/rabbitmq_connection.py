@@ -1,4 +1,3 @@
-import sys
 from time import sleep
 import pika
 import pika_pool
