@@ -180,16 +180,16 @@ def cluster_new_recording(recording_data):
 
 
 def _send_recording_to_queue(recording_data):
-    # check if rabbitmq connection exists or not
-    # and if not then try to connect
-    try:
-        rabbitmq_connection.init_rabbitmq_connection(current_app)
-    except ConnectionError as e:
-        current_app.logger.error('Cannot connect to RabbitMQ: %s' % str(e))
-        raise ServiceUnavailable('Cannot submit recording to queue, please try again later.')
-
     app = create_app()
     with app.app_context():
+        # check if rabbitmq connection exists or not
+        # and if not then try to connect
+        try:
+            rabbitmq_connection.init_rabbitmq_connection(current_app)
+        except ConnectionError as e:
+            current_app.logger.error('Cannot connect to RabbitMQ: %s' % str(e))
+            raise ServiceUnavailable('Cannot submit recording to queue, please try again later.')
+
         publish_data_to_queue(
             data=recording_data,
             exchange=current_app.config['INCOMING_EXCHANGE'],
