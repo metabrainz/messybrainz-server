@@ -21,7 +21,6 @@ class Cluster:
     def __init__(self):
         self.connection = None
         self.incoming_ch = None
-        self.unique_ch = None
         self.ERROR_RETRY_DELAY = 3 # number of seconds to wait until retrying an operation
 
 
@@ -127,18 +126,6 @@ class Cluster:
             except IntegrityError:
                 pass
 
-        while True:
-            try:
-                self.unique_ch.basic_publish(
-                    exchange=current_app.config['UNIQUE_EXCHANGE'],
-                    routing_key='',
-                    body=rec,
-                    properties=pika.BasicProperties(delivery_mode = 2,),
-                )
-                break
-            except pika.exceptions.ConnectionClosed:
-                self.connect_to_rabbitmq()
-        
 
     def _verify_hosts_in_config(self):
         if "RABBITMQ_HOST" not in current_app.config:
@@ -179,9 +166,6 @@ class Cluster:
                     lambda ch, method, properties, body: self.static_callback(ch, method, properties, body, obj=self),
                     queue=current_app.config['INCOMING_QUEUE'],
                 )
-
-                self.unique_ch = self.connection.channel()
-                self.unique_ch.exchange_declare(exchange=current_app.config['UNIQUE_EXCHANGE'], exchange_type='fanout')
 
                 current_app.logger.info("Clustering started")
                 try:

@@ -38,11 +38,9 @@ RABBITMQ_USERNAME = "guest"
 RABBITMQ_PASSWORD = "guest"
 RABBITMQ_VHOST = "/"
 
-# RabbitMQ exchanges and queues
+# RabbitMQ exchange and queue
 INCOMING_EXCHANGE = "incoming"
 INCOMING_QUEUE = "incoming"
-UNIQUE_EXCHANGE = "unique"
-UNIQUE_QUEUE = "unique"
 
 # LOGGING
 
