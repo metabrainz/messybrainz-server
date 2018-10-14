@@ -163,6 +163,8 @@ def create_recording_clusters():
 
 def cluster_new_recording(recording_data):
     """ Tries to associate and cluster newly inserted recording.
+        The recordings are send to rabbitMQ server and are consumed by
+        clustering script.
 
     Args:
         recording_data(dict): Data present in the recording.
