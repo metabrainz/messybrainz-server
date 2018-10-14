@@ -1,3 +1,4 @@
+from requests.exceptions import ConnectionError
 from time import sleep
 import pika
 import pika_pool
