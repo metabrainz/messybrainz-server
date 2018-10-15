@@ -13,3 +13,7 @@ class BadDataException(MessyBrainzException):
 class ErrorAddingException(MessyBrainzException):
     """Should be used when incorrect data is being submitted."""
     pass
+
+class ErrorAssociatingRecording(MessyBrainzException):
+    """Should be used if error occured during associating MSID to MBID for new recording."""
+    pass

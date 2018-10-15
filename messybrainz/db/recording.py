@@ -1,10 +1,11 @@
 from messybrainz.db import data
+from messybrainz.db.exceptions import ErrorAssociatingRecording
 from messybrainz.webserver import create_app
 from flask import current_app
 from messybrainz import db
 from pika_pool import Overflow as PikaPoolOverflow, Timeout as PikaPoolTimeout
+from requests.exceptions import ConnectionError
 from sqlalchemy import text
-from werkzeug.exceptions import InternalServerError, ServiceUnavailable
 
 import messybrainz.webserver.rabbitmq_connection as rabbitmq_connection
 import pika
@@ -175,7 +176,7 @@ def cluster_new_recording(recording_data):
 
     try:
         _send_recording_to_queue(recording_data)
-    except (InternalServerError, ServiceUnavailable) as e:
+    except ErrorAssociatingRecording as e:
         raise
     except Exception as e:
         print(e)
@@ -190,13 +191,13 @@ def _send_recording_to_queue(recording_data):
             rabbitmq_connection.init_rabbitmq_connection(current_app)
         except ConnectionError as e:
             current_app.logger.error('Cannot connect to RabbitMQ: %s' % str(e))
-            raise ServiceUnavailable('Cannot submit recording to queue, please try again later.')
+            raise ErrorAssociatingRecording('Cannot Associate MSIDs with MBIDs, please verify that data submitted is correct.')
 
         publish_data_to_queue(
             data=recording_data,
             exchange=current_app.config['INCOMING_EXCHANGE'],
             queue=current_app.config['INCOMING_QUEUE'],
-            error_msg='Cannot submit recording to queue, please try again later.',
+            error_msg='Cannot Associate MSIDs with MBIDs, please verify that data submitted is correct.',
         )
 
 
@@ -222,13 +223,13 @@ def publish_data_to_queue(data, exchange, queue, error_msg):
             )
     except pika.exceptions.ConnectionClosed as e:
         current_app.logger.error("Connection to rabbitmq closed while trying to publish: %s" % str(e))
-        raise ServiceUnavailable(error_msg)
+        raise ErrorAssociatingRecording(error_msg)
     except PikaPoolOverflow:
         current_app.logger.error("Cannot acquire pika channel. Increase number of available channels.")
-        raise ServiceUnavailable(error_msg)
+        raise ErrorAssociatingRecording(error_msg)
     except PikaPoolTimeout as e:
         current_app.logger.error("Cannot publish to rabbitmq channel -- timeout: %s" % str(e))
-        raise ServiceUnavailable(error_msg)
+        raise ErrorAssociatingRecording(error_msg)
     except Exception as e:
         current_app.logger.error("Cannot publish to rabbitmq channel: %s / %s" % (type(e).__name__, str(e)))
-        raise ServiceUnavailable(error_msg)
+        raise ErrorAssociatingRecording(error_msg)
