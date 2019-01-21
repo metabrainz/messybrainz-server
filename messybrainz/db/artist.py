@@ -219,11 +219,7 @@ def get_artist_cluster_id_using_artist_mbids(connection, artist_credit_mbids):
     gid = connection.execute(text("""
         SELECT artist_credit_cluster_id
           FROM artist_credit_redirect
-<<<<<<< HEAD
          WHERE artist_mbids = array_sort(:artist_credit_mbids)
-=======
-         WHERE artist_mbids_array = :artist_credit_mbids
->>>>>>> Add conditions to ignore recordings with empty MBIDs
     """), {
         "artist_credit_mbids": artist_credit_mbids,
     })
@@ -251,7 +247,7 @@ def fetch_artist_credits_left_to_cluster(connection):
                      ON convert_json_array_to_sorted_uuid_array(rj.data -> 'artist_mbids') = acr.artist_mbids
                   WHERE rj.data ->> 'artist_mbids' IS NOT NULL
                     AND rj.data ->> 'artist_mbids' != '[]'
-                    AND acr.artist_mbids_array IS NULL
+                    AND acr.artist_mbids IS NULL
     """))
 
     return [r[0] for r in result]
