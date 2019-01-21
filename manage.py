@@ -207,29 +207,30 @@ def create_artist_credit_clusters_for_mbids(verbose='WARNING'):
 
 
 @cli.command()
-@click.option("--verbose", "-v", default=0, help="Print debug information for given verbose level(0,1,2).")
-def create_release_clusters_for_mbids(verbose=0):
+@click.option("--verbose", "-v", is_flag=True, help="Print debug information if verbose is turned on.")
+def create_release_clusters_for_mbids(verbose=False):
     """Creates clusters for release using release MBIDs present in
        recording_json table.
     """
 
-    if verbose == 1:
-        logging.basicConfig(format='%(message)s', level=logging.INFO)
-    elif verbose == 2:
+    if verbose:
         logging.basicConfig(format='%(message)s', level=logging.DEBUG)
+    else:
+        logging.basicConfig(format='%(message)s', level=logging.INFO)
 
-    print("Creating release clusters...")
+    logging.info("Creating release clusters...")
 
-    db.init_db_engine(config.SQLALCHEMY_DATABASE_URI)
     try:
+        db.init_db_engine(config.SQLALCHEMY_DATABASE_URI)
+        musicbrainz_db.init_db_engine(config.MB_DATABASE_URI)
         logging.info("=" * 80)
         clusters_modified, clusters_add_to_redirect = release.create_release_clusters()
         logging.info("=" * 80)
-        print("Clusters modified: {0}.".format(clusters_modified))
-        print("Clusters add to redirect table: {0}.".format(clusters_add_to_redirect))
-        print ("Done!")
+        logging.info("Clusters modified: {0}.".format(clusters_modified))
+        logging.info("Clusters add to redirect table: {0}.".format(clusters_add_to_redirect))
+        logging.info("Done!")
     except Exception as error:
-        print("While creating release clusters. An error occured: {0}".format(error))
+        logging.info("While creating release clusters. An error occured: {0}".format(error))
         raise
 
 
@@ -253,8 +254,9 @@ def truncate_artist_credit_cluster_and_redirect():
 @cli.command()
 def truncate_release_cluster_and_redirect():
     """Truncate release_cluster and release_redirect tables."""
-    db.init_db_engine(config.SQLALCHEMY_DATABASE_URI)
+
     try:
+        db.init_db_engine(config.SQLALCHEMY_DATABASE_URI)
         release.truncate_release_cluster_and_release_redirect_table()
         print("release_cluster and release_redirect table truncated.")
     except Exception as error:

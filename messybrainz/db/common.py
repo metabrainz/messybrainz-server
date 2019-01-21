@@ -1,3 +1,5 @@
+from brainzutils.musicbrainz_db import release as mb_release
+from brainzutils.musicbrainz_db import artist as mb_artist
 from messybrainz import db
 import logging
 
@@ -56,7 +58,7 @@ def create_entity_clusters_for_anomalies(connection,
     logger = logging.getLogger(__name__)
     logger_level = logger.getEffectiveLevel()
 
-    logger.info("Creating clusters for anomalies...")
+    logger.debug("Creating clusters for anomalies...")
     clusters_add_to_redirect = 0
     entities_left = fetch_entities_left_to_cluster(connection)
     for entity_mbid in entities_left:
@@ -65,25 +67,13 @@ def create_entity_clusters_for_anomalies(connection,
         for cluster_id in cluster_ids:
             link_entity_mbid_to_entity_cluster_id(connection, cluster_id, entity_mbid)
             clusters_add_to_redirect += 1
-            logger.info("=" * 80)
-            logger.info("Cluster ID: {0}\n".format(cluster_id))
-            if logger_level == logging.DEBUG:
-                if isinstance(entity_mbid, list):
-                    mbids_str_list = [str(mbid) for mbid in entity_mbid]
-                    mbids_str = ', '.join(mbids_str_list)
-                else:
-                    mbids_str = str(entity_mbid)
-                logger.debug("Cluster MBID: {0}\n".format(mbids_str))
-            logger.info("Recordings:")
-            if logger_level >= logging.DEBUG:
-                recordings = get_recordings_metadata_using_entity_mbid(connection, entity_mbid)
-                if logger_level == logging.INFO:
-                    formatted_rec = _format_recordings(recordings)
-                else:
-                    formatted_rec = _format_recordings(recordings, uuids=True)
-                logger.info("{0}".format(formatted_rec))
 
-    logger.info("\nClusters added to redirect table: {0}.".format(clusters_add_to_redirect))
+            if logger_level == logging.DEBUG:
+                recordings = get_recordings_metadata_using_entity_mbid(connection, entity_mbid)
+                _print_debug_info(connection, logger, cluster_id, entity_gids, entity_mbid, recordings)
+
+    logger.debug("\nClusters added to redirect table: {0}.".format(clusters_add_to_redirect))
+
     return clusters_add_to_redirect
 
 
@@ -121,7 +111,7 @@ def create_entity_clusters_without_considering_anomalies(connection,
     logger = logging.getLogger(__name__)
     logger_level = logger.getEffectiveLevel()
 
-    logger.info("\nCreating clusters without considering anomalies...")
+    logger.debug("\nCreating clusters without considering anomalies...")
     clusters_modified = 0
     clusters_added_to_redirect = 0
     distinct_entity_mbids = fetch_unclustered_entity_mbids(connection)
@@ -135,66 +125,56 @@ def create_entity_clusters_without_considering_anomalies(connection,
                 clusters_added_to_redirect +=1
             insert_entity_cluster(connection, cluster_id, gids)
             clusters_modified += 1
-            logger.info("=" * 80)
-            logger.info("Cluster ID: {0}\n".format(cluster_id))
+
             if logger_level == logging.DEBUG:
-                if isinstance(entity_mbids, list):
-                    mbids_str_list = [str(mbid) for mbid in entity_mbids]
-                    mbids_str = ', '.join(mbids_str_list)
-                else:
-                    mbids_str = str(entity_mbids)
-                logger.debug("Cluster MBID: {0}\n".format(mbids_str))
-            logger.info("Number of entity added to this cluster: {0}.\n".format(len(gids)))
-            logger.info("Recordings:")
-            if logger_level >= logging.DEBUG:
                 recordings = get_recordings_metadata_using_entity_mbid(connection, entity_mbids)
-                if logger_level == logging.INFO:
-                    formatted_rec = _format_recordings(recordings)
-                else:
-                    formatted_rec = _format_recordings(recordings, uuids=True)
-                logger.info("{0}".format(formatted_rec))
-    logger.info("\nClusters modified: {0}.".format(clusters_modified))
-    logger.info("Clusters added to redirect table: {0}.\n".format(clusters_added_to_redirect))
+                _print_debug_info(connection, logger, cluster_id, gids, entity_mbids, recordings)
+
+    logger.debug("\nClusters modified: {0}.".format(clusters_modified))
+    logger.debug("Clusters added to redirect table: {0}.\n".format(clusters_added_to_redirect))
+    logger.debug("=" * 80)
 
     return clusters_modified, clusters_added_to_redirect
 
 
-def _format_recordings(recordings, uuids=False):
-    """ Returns string of formatted recordings in a human readable format.
-            artist: <artist name>,
-            release: <release title>,
-            title: <recording title>,
-            artist_mbids : <artist_mbids>,
-            recording_mbids: <recording_mbids>,
-            release_mbids: <release_mbids>
-    """
+def _print_debug_info(connection, logger, cluster_id, gids, entity_mbids, recordings):
+    logger.debug("=" * 80)
+    logger.debug("Cluster ID: {0}\n".format(cluster_id))
+    if isinstance(entity_mbids, list):
+        # Entity type is artist
+        artists = mb_artist.get_many_artists_using_mbid(entity_mbids, includes=["comment"])
+        logging.debug("Artist credit from MusicBrainz database:")
+        artist_credit = ""
+        for artist in artists.values():
+            if artist['comment'] != '':
+                logging.debug("{1} ({0})".format(artist['name'], artist['comment']))
+            else:
+                logging.debug("{0}".format(artist['name']))
 
-    formatted_recordings = []
-    for recording in recordings:
-        rec_dict = {
-            "artist" : recording["artist"],
-            "title" : recording["title"],
-            "release": recording.get("release", "")
-        }
-        if uuids:
-            rec_dict["artist_mbids"] = recording.get("artist_mbids", "")
-            rec_dict["recording_mbid"] = recording.get("recording_mbid", "")
-            rec_dict["release_mbid"] = recording.get("release_mbid", "")
+        artist_titles = set()
+        logging.debug("\nArtist credit added to the cluster based on artist MBIDs:")
+        for recording in recordings:
+            artist_title = recording.get("artist", "")
+            artist_titles.add(artist_title)
+        for artist_title in artist_titles:
+            logging.debug("{0}".format(artist_title))
+    else:
+        # Entity type is release
+        try:
+            release = mb_release.get_release_by_mbid(entity_mbids, includes=["comment"])
+            logging.debug("Release from MusicBrainz database:")
+            if release['comment'] != '':
+                logging.debug("{0} ({1})".format(release['name'], release['comment']))
+            else:
+                logging.debug("{0}".format(release['name']))
 
-        formatted_recordings.append(rec_dict)
+        except:
+            pass
 
-    rec_str = ""
-    for rec in formatted_recordings:
-        rec_str += "\nartist: {0}\nrelease: {1}\ntitle: {2}\n".format(rec["artist"],
-                                                                rec.get("release", ""),
-                                                                rec["title"])
-        if uuids:
-            artist_mbids_str = ', '.join(rec.get("artist_mbids"))
-            rec_str += "artist_mbids: {0}\nrecording_mbid: {1}\nrelease_mbid: {2}\n".format(
-                                                                artist_mbids_str,
-                                                                rec.get("recording_mbid"),
-                                                                rec.get("release_mbid")
-            )
-        rec_str += "-" * 80
-
-    return rec_str
+        release_titles = set()
+        for recording in recordings:
+            release_title = recording.get("release", "")
+            release_titles.add("{0} ({1})".format(release_title, recording.get("release_mbid")))
+        logging.debug("\nReleases added to the cluster based on release MBIDs:")
+        for release_title in release_titles:
+            logging.debug("{0}".format(release_title))
