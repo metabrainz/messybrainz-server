@@ -332,6 +332,7 @@ def create_clusters_using_fetched_artist_mbids(verbose=False):
         logging.info("While creating artist_credit clusters using fetched artist MBIDs. An error occured: {0}".format(error))
 
 
+@cli.command()
 @click.option("--verbose", "-v", is_flag=True, help="Print debug information.")
 def create_clusters_using_fetched_releases(verbose=False):
     """Creates clusters for releases using releases fetched from MusicBrainz
