@@ -98,9 +98,8 @@ def init_test_db(force=False):
     if not exit_code:
         raise Exception('Failed to create new database and user! Exit code: %i' % exit_code)
 
+    print('Creating database extensions...')
     exit_code = db.run_sql_script_without_transaction(os.path.join(ADMIN_SQL_DIR, 'create_extensions.sql'))
-    if not exit_code:
-        raise Exception('Failed to create database extensions! Exit code: %i' % exit_code)
 
     db.init_db_engine(config.TEST_SQLALCHEMY_DATABASE_URI)
 
