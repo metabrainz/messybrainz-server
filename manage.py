@@ -38,7 +38,7 @@ def runserver(host, port, debug=False):
     create_app(debug=debug).run(host=host, port=port)
 
 
-@cli.command()
+@cli.command(name="init_db")
 @click.option("--force", "-f", is_flag=True, help="Drop existing database and user.")
 def init_db(force):
     """Initializes database.
@@ -80,7 +80,7 @@ def init_db(force):
     print("Done!")
 
 
-@cli.command()
+@cli.command(name="init_test_db")
 @click.option("--force", "-f", is_flag=True, help="Drop existing database and user.")
 def init_test_db(force=False):
     """Same as `init_db` command, but creates a database that will be used to run tests.
@@ -114,9 +114,9 @@ def init_test_db(force=False):
     print("Done!")
 
 
-@cli.command()
+@cli.command(name="create_recording_clusters_for_mbids")
 def create_recording_clusters_for_mbids():
-    """Creates clusters for recording using recording MBIDs present in 
+    """Creates clusters for recording using recording MBIDs present in
        recording_json table.
     """
     db.init_db_engine(config.SQLALCHEMY_DATABASE_URI)
@@ -130,7 +130,7 @@ def create_recording_clusters_for_mbids():
         raise
 
 
-@cli.command()
+@cli.command(name="truncate_recording_cluster_and_redirect")
 def truncate_recording_cluster_and_redirect():
     """Truncate recording_cluster and recording_redirect tables."""
     db.init_db_engine(config.SQLALCHEMY_DATABASE_URI)
@@ -142,7 +142,7 @@ def truncate_recording_cluster_and_redirect():
         raise
 
 
-@cli.command()
+@cli.command(name="fetch_and_store_artist_mbids")
 def fetch_and_store_artist_mbids():
     """ Fetches artist MBIDs from the musicbrainz database for the recording MBIDs
         in the recording_json table submitted while submitting a listen. It fetches
@@ -165,7 +165,7 @@ def fetch_and_store_artist_mbids():
         raise
 
 
-@cli.command()
+@cli.command(name="truncate_recording_artist_join_table")
 def truncate_recording_artist_join_table():
     """Truncate table recording_artist_join."""
     db.init_db_engine(config.SQLALCHEMY_DATABASE_URI)
@@ -177,7 +177,7 @@ def truncate_recording_artist_join_table():
         raise
 
 
-@cli.command()
+@cli.command(name="create_artist_credit_clusters_for_mbids")
 @click.option("--verbose", "-v", default='WARNING', help="Print debug information for given verbose level(WARNING, INFO, DEBUG).")
 def create_artist_credit_clusters_for_mbids(verbose='WARNING'):
     """Creates clusters for artist_credits using artist MBIDs present in
@@ -206,7 +206,7 @@ def create_artist_credit_clusters_for_mbids(verbose='WARNING'):
         raise
 
 
-@cli.command()
+@cli.command(name="create_release_clusters_for_mbids")
 @click.option("--verbose", "-v", default=0, help="Print debug information for given verbose level(0,1,2).")
 def create_release_clusters_for_mbids(verbose=0):
     """Creates clusters for release using release MBIDs present in
@@ -233,7 +233,7 @@ def create_release_clusters_for_mbids(verbose=0):
         raise
 
 
-@cli.command()
+@cli.command(name="truncate_artist_credit_cluster_and_redirect")
 def truncate_artist_credit_cluster_and_redirect():
     """Truncate artist_credit_cluster and artist_credit_redirect table."""
 
@@ -262,7 +262,7 @@ def truncate_release_cluster_and_redirect():
         raise
 
 
-@cli.command()
+@cli.command(name="fetch_and_store_releases")
 @click.option("--verbose", "-v", is_flag=True, help="Print debug information.")
 def fetch_and_store_releases(verbose=False):
     """ Fetches releases from the musicbrainz database for the recording MBIDs
@@ -292,7 +292,7 @@ def fetch_and_store_releases(verbose=False):
         raise
 
 
-@cli.command()
+@cli.command(name="truncate_recording_release_join_table")
 def truncate_recording_release_join_table():
     """Truncate table recording_release_join."""
     db.init_db_engine(config.SQLALCHEMY_DATABASE_URI)
@@ -304,7 +304,7 @@ def truncate_recording_release_join_table():
         raise
 
 
-@cli.command()
+@cli.command(name="create_clusters_using_fetched_artist_mbids")
 @click.option("--verbose", "-v", default="WARNING", help="Print debug information for given verbose level(WARNING, INFO, DEBUG).")
 def create_clusters_using_fetched_artist_mbids(verbose="WARNING"):
     """Creates clusters for artist_credits using artist MBIDs fetched from MusicBrainz
