@@ -83,4 +83,6 @@ CREATE TABLE release_redirect (
 );
 ALTER TABLE release_redirect ADD CONSTRAINT release_redirect_uniq UNIQUE (release_cluster_id, release_mbid);
 
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO messybrainz;
+
 COMMIT;
