@@ -1,6 +1,10 @@
 messybrainz-server
 ==================
 
+__NOTE: This repository has been merged into
+[listenbrainz-server](https://github.com/metabrainz/listenbrainz-server) and archived. Please open
+all pull requests to that repository__
+
 The server components for the MessyBrainz project.
 
 MessyBrainz is a [MetaBrainz](https://metabrainz.org) project to support unclean metadata. While
